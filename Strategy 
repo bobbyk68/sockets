@@ -1,0 +1,59 @@
+import org.w3c.dom.Element;
+import javax.xml.xpath.*;
+
+public class XPathAccessStrategy implements AccessStrategy {
+    private final Element element;
+
+    public XPathAccessStrategy(Element element) {
+        this.element = element;
+    }
+
+    @Override
+    public Object getObject(String path) {
+        if (element == null) {
+            return null;
+        }
+
+        try {
+            XPath xPath = XPathFactory.newInstance().newXPath();
+            return xPath.evaluate(path, element, XPathConstants.NODE);
+        } catch (XPathExpressionException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+
+public interface AccessStrategy {
+    Object getObject(String path);
+}
+
+import java.util.HashMap;
+
+public class HashMapAccessStrategy implements AccessStrategy {
+    private final HashMap<String, Object> map;
+
+    public HashMapAccessStrategy(HashMap<String, Object> map) {
+        this.map = map;
+    }
+
+    @Override
+    public Object getObject(String path) {
+        if (map == null) {
+            return null;
+        }
+
+        // Implement logic to navigate the map using the path
+        // For simplicity, assume path segments are separated by '/'
+        String[] parts = path.split("/");
+        Object current = map;
+        for (String part : parts) {
+            if (current instanceof HashMap) {
+                current = ((HashMap<?, ?>) current).get(part);
+            } else {
+                return null;
+            }
+        }
+        return current;
+    }
+}
