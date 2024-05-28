@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Declare variable to store the maximum value
+max_value=""
+
+# Construct the SQL statement (replace 'your_table' and 'your_column' with actual values)
+sql_statement="SELECT MAX(your_column) FROM your_table;"
+
+# Execute the SQL statement and capture the output in the variable
+sqlplus -s username/password@database << EOF
+  VAR max_value NUMBER;
+  EXECUTE :sql_statement INTO max_value;
+  PRINT &max_value;
+EXIT;
+EOF
+
+# Print the captured maximum value
+echo "Maximum value: $max_value"
