@@ -1,0 +1,20 @@
+public class Main {
+    public static void main(String[] args) {
+        // Example using XPathAccessStrategy
+        Element xmlElement = // load your XML element
+        AccessStrategy xpathStrategy = new XPathAccessStrategy(xmlElement);
+        Node nodeWithXPath = new Node(xpathStrategy);
+        Object resultXPath = nodeWithXPath.getObject("/root/child");
+
+        // Example using HashMapAccessStrategy
+        HashMap<String, Object> xmlMap = new HashMap<>();
+        // populate your map with some XML data
+        AccessStrategy mapStrategy = new HashMapAccessStrategy(xmlMap);
+        Node nodeWithMap = new Node(mapStrategy);
+        Object resultMap = nodeWithMap.getObject("/root/child");
+
+        // Switching strategies at runtime
+        nodeWithXPath.setAccessStrategy(mapStrategy);
+        Object resultAfterSwitch = nodeWithXPath.getObject("/root/child");
+    }
+}
