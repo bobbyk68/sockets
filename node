@@ -1,0 +1,15 @@
+public class Node {
+    private AccessStrategy accessStrategy;
+
+    public Node(AccessStrategy accessStrategy) {
+        this.accessStrategy = accessStrategy;
+    }
+
+    public void setAccessStrategy(AccessStrategy accessStrategy) {
+        this.accessStrategy = accessStrategy;
+    }
+
+    public Object getObject(String path) {
+        return accessStrategy.getObject(path);
+    }
+}
