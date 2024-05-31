@@ -1,0 +1,36 @@
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+// ... your XPath evaluation code
+
+// Class to hold compiled XPath expressions
+private static class CompiledXPath {
+  private final XPathExpression expression;
+
+  public CompiledXPath(XPathExpression expression) {
+    this.expression = expression;
+  }
+
+  public Object evaluate(Object node) throws XPathExpressionException {
+    return expression.evaluate(node, XPathConstants.STRING);
+  }
+}
+
+// Cache to store compiled XPaths
+private final Map<String, CompiledXPath> xpathCache = new ConcurrentHashMap<>();
+
+// Method to compile and cache XPath expressions
+private CompiledXPath compileXPath(String xpath) throws XPathExpressionException {
+  XPathExpression expression = xpathFactory.newXPath().compile(xpath);
+  xpathCache.put(xpath, new CompiledXPath(expression));
+  return expression;
+}
+
+// Usage:
+String someXpath = "/descendant::node()[@name='title']";
+CompiledXPath compiledXPath = xpathCache.get(someXpath);
+if (compiledXPath == null) {
+  compiledXPath = compileXPath(someXpath);
+}
+
+String title = (String) compiledXPath.evaluate(documentNode);
