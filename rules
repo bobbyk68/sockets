@@ -14,3 +14,19 @@ when
 then
     System.out.println("Node validated: " + $node);
 end
+
+
+package com.example.rules;
+
+import java.util.regex.Pattern;
+
+rule "Validate Node"
+when
+    $node : Node($value : value) from itemList
+    eval($value.length() == 21)
+    eval(Pattern.matches("[a-z]{10}[0-9]{11}", $value))
+    codelist199 : List() from global "codelist199"
+    eval(codelist199.contains($value.substring(2, 4)))
+then
+    System.out.println("Node validated: " + $node);
+end
