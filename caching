@@ -1,0 +1,141 @@
+import org.w3c.dom.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class DomPathWithIndexes {
+
+    private static final Map<Node, String> pathCache = new HashMap<>();
+
+    public static void main(String[] args) throws Exception {
+        // Sample XML
+        String xml = """
+            <company>
+                <employee id="1">
+                    <name>John Doe</name>
+                    <position>Software Engineer</position>
+                    <projects>
+                        <project>Project A</project>
+                        <project>Project B</project>
+                    </projects>
+                </employee>
+                <employee id="2">
+                    <name>Jane Smith</name>
+                    <position>Project Manager</position>
+                    <projects>
+                        <project>Project X</project>
+                    </projects>
+                </employee>
+            </company>
+        """;
+
+        // Parse the XML
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse(new java.io.ByteArrayInputStream(xml.getBytes()));
+
+        // Example: Pass any node to find its path (e.g., the first <name> element)
+        Node targetNodeName = document.getElementsByTagName("name").item(0);
+        String pathToName = getPathWithIndexes(targetNodeName);
+        System.out.println("Path to first <name>: " + pathToName);
+
+        // Example: Pass another node to find its path (e.g., the first <position> element)
+        Node targetNodePosition = document.getElementsByTagName("position").item(0);
+        String pathToPosition = getPathWithIndexes(targetNodePosition);
+        System.out.println("Path to first <position>: " + pathToPosition);
+    }
+
+    public static String getPathWithIndexes(Node node) {
+        // Check if the path for the node is already cached
+        if (pathCache.containsKey(node)) {
+            return pathCache.get(node);
+        }
+
+        List<String> pathSegments = new ArrayList<>();
+        Node current = node;
+
+        // Traverse from the current node to the root and build the path
+        while (current != null && current.getNodeType() != Node.DOCUMENT_NODE) {
+            if (pathCache.containsKey(current)) {
+                // Prepend the cached path segment and stop the loop
+                pathSegments.add(0, pathCache.get(current));
+                break;
+            }
+
+            StringBuilder segment = new StringBuilder(current.getNodeName());
+
+            // Add index for non-leaf nodes
+            if (!isLeafNode(current)) {
+                int index = getNodeIndex(current);
+                segment.append("[").append(index).append("]");
+            }
+
+            pathSegments.add(0, segment.toString());  // Add segment at the beginning
+
+            // Cache the path for the current node
+            String fullPath = String.join("/", pathSegments);
+            pathCache.put(current, fullPath);
+
+            current = current.getParentNode();
+        }
+
+        // Join all segments to form the full path
+        String fullPath = String.join("/", pathSegments);
+
+        // Append the node value if it has any
+        String nodeValue = getNodeValue(node);
+        if (!nodeValue.isEmpty()) {
+            fullPath += " = \"" + nodeValue + "\"";
+        }
+
+        return fullPath;
+    }
+
+    public static boolean isLeafNode(Node node) {
+        NodeList childNodes = node.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            if (childNodes.item(i).getNodeType() == Node.ELEMENT_NODE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static int getNodeIndex(Node node) {
+        Node parent = node.getParentNode();
+        if (parent == null) {
+            return -1;  // Root node, no index needed
+        }
+
+        NodeList siblings = parent.getChildNodes();
+        int count = 0;
+
+        for (int i = 0; i < siblings.getLength(); i++) {
+            Node sibling = siblings.item(i);
+            if (sibling.getNodeType() == Node.ELEMENT_NODE && sibling.getNodeName().equals(node.getNodeName())) {
+                if (sibling == node) {
+                    return count;
+                }
+                count++;
+            }
+        }
+
+        return -1;  // Should not happen
+    }
+
+    public static String getNodeValue(Node node) {
+        if (node.getNodeType() == Node.ELEMENT_NODE) {
+            NodeList childNodes = node.getChildNodes();
+            for (int i = 0; i < childNodes.getLength(); i++) {
+                Node child = childNodes.item(i);
+                if (child.getNodeType() == Node.TEXT_NODE) {
+                    return child.getNodeValue().trim();
+                }
+            }
+        }
+        return "";
+    }
+}
