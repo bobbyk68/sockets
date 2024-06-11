@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Function to find the definition of a type in multiple XSD files
+find_type_definition() {
+    local type_name="$1"
+    shift
+    local xsd_files=("$@")
+
+    for xsd_file in "${xsd_files[@]}"; do
+        local result=$(grep -E "<xs:(complexType|simpleType).*name=\"$type_name\"" "$xsd_file")
+        if [ -n "$result" ]; then
+            echo "Type definition found in $xsd_file:"
+            echo "$result"
+            return 0
+        fi
+    done
+
+    echo "Type '$type_name' definition not found in any provided XSD files."
+    return 1
+}
+
+# Function to find an element and its type in multiple XSD files
+find_element() {
+    local element_name="$1"
+    shift
+    local xsd_files=("$@")
+
+    for xsd_file in "${xsd_files[@]}"; do
+        local result=$(grep -E "<xs:element.*name=\"$element_name\"" "$xsd_file")
+        if [ -n "$result" ]; then
+            local element_type=$(echo "$result" | sed -n 's/.*type="\([^"]*\)".*/\1/p')
+            if [ -n "$element_type" ]; then
+                echo "Element '$element_name' found in $xsd_file with type '$element_type'."
+                return 0
+            else
+                echo "Element '$element_name' found in $xsd_file, but type could not be extracted."
+                return 1
+            fi
+        fi
+    done
+
+    echo "Element '$element_name' not found in any provided XSD files."
+    return 1
+}
+
+# Main script logic
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <element_name> <xsd_file1> [<xsd_file2> ... <xsd_fileN>]"
+    exit 1
+fi
+
+ELEMENT_NAME="$1"
+shift
+XSD_FILES=("$@")
+
+# Find the type of the initial element
+if ! find_element "$ELEMENT_NAME" "${XSD_FILES[@]}"; then
+    exit 1
+fi
+
+ELEMENT_TYPE=$(find_element "$ELEMENT_NAME" "${XSD_FILES[@]}" | sed -n 's/.*type="\(.*\)".*/\1/p')
+
+# Find the definition of the type
+find_type_definition "$ELEMENT_TYPE" "${XSD_FILES[@]}"
