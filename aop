@@ -1,0 +1,22 @@
+@Aspect
+@Component
+public class JdbcTemplateLoggingAspect {
+
+    @Around("execution(* org.springframework.jdbc.core.JdbcTemplate.execute(..))")
+    public Object logSql(ProceedingJoinPoint joinPoint) throws Throwable {
+        Object[] args = joinPoint.getArgs();
+        // Assuming the first argument is the SQL query
+        String sql = (String) args[0];
+        // Log or modify the SQL as needed
+        System.out.println("Executing SQL: " + sql);
+        return joinPoint.proceed();
+    }
+}
+
+
+private String replacePlaceholders(String sql, Object[] params) {
+    for (Object param : params) {
+        sql = sql.replaceFirst("\\?", param.toString());
+    }
+    return sql;
+}
