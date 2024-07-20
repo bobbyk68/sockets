@@ -1,0 +1,56 @@
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
+public class ReflectionUtil {
+
+    public static String getPopulatedFieldValue(Object obj) {
+        try {
+            for (Field field : obj.getClass().getDeclaredFields()) {
+                if (field.getType() == String.class) {
+                    Method getter = obj.getClass().getMethod("get" + capitalize(field.getName()));
+                    String value = (String) getter.invoke(obj);
+                    if (value != null) {
+                        return value;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    public static void main(String[] args) {
+        IEMessageType message = new IEMessageType();
+        message.setCd3("Hello, World!");
+        String populatedField = getPopulatedFieldValue(message);
+        System.out.println("The populated field value is: " + populatedField);
+    }
+}
+
+class IEMessageType {
+    private String cd1;
+    private String cd2;
+    private String cd3;
+    private String cd4;
+
+    // Getters and Setters
+    public String getCd1() { return cd1; }
+    public void setCd1(String cd1) { this.cd1 = cd1; }
+
+    public String getCd2() { return cd2; }
+    public void setCd2(String cd2) { this.cd2 = cd2; }
+
+    public String getCd3() { return cd3; }
+    public void setCd3(String cd3) { this.cd3 = cd3; }
+
+    public String getCd4() { return cd4; }
+    public void setCd4(String cd4) { this.cd4 = cd4; }
+}
