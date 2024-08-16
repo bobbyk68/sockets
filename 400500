@@ -1,0 +1,115 @@
+// DemoSoapApplication.java
+@SpringBootApplication
+public class DemoSoapApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoSoapApplication.class, args);
+    }
+}
+
+// WebServiceConfig.java
+@Configuration
+@EnableWs
+public class WebServiceConfig extends WsConfigurerAdapter {
+
+    @Bean
+    public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(ApplicationContext context) {
+        MessageDispatcherServlet servlet = new MessageDispatcherServlet();
+        servlet.setApplicationContext(context);
+        servlet.setTransformWsdlLocations(true);
+        return new ServletRegistrationBean<>(servlet, "/ws/*");
+    }
+
+    @Bean
+    public XsdSchema demoSchema() {
+        return new SimpleXsdSchema(new ClassPathResource("demo.xsd"));
+    }
+
+    @Bean(name = "demoService")
+    public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema demoSchema) {
+        DefaultWsdl11Definition wsdl11Definition = new DefaultWsdl11Definition();
+        wsdl11Definition.setPortTypeName("DemoPort");
+        wsdl11Definition.setLocationUri("/ws");
+        wsdl11Definition.setTargetNamespace("http://example.com/demo");
+        wsdl11Definition.setSchema(demoSchema);
+        return wsdl11Definition;
+    }
+}
+
+// DemoEndpoint.java
+@Endpoint
+public class DemoEndpoint {
+
+    private static final String NAMESPACE_URI = "http://example.com/demo";
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "DemoRequest")
+    @ResponsePayload
+    public DemoResponse handleDemoRequest(@RequestPayload DemoRequest request) {
+        if (request.getInput() == null || request.getInput().isEmpty()) {
+            throw new BadRequestException("Input is required");
+        }
+
+        DemoResponse response = new DemoResponse();
+        response.setOutput("Received: " + request.getInput());
+        return response;
+    }
+}
+
+// BadRequestException.java
+public class BadRequestException extends RuntimeException {
+    public BadRequestException(String message) {
+        super(message);
+    }
+}
+
+// SoapExceptionConfig.java
+@Configuration
+public class SoapExceptionConfig {
+
+    @Bean
+    public SoapFaultMappingExceptionResolver exceptionResolver() {
+        SoapFaultMappingExceptionResolver resolver = new SoapFaultMappingExceptionResolver();
+        resolver.setDefaultFault(new SoapFaultDefinition(SoapFaultDefinition.CLIENT));
+        resolver.setExceptionMappings(exceptionMappingProperties());
+        return resolver;
+    }
+
+    private Properties exceptionMappingProperties() {
+        Properties properties = new Properties();
+        properties.setProperty(BadRequestException.class.getName(), SoapFaultDefinition.CLIENT.toString());
+        return properties;
+    }
+}
+
+// DemoRequest.java (Generated from XSD or manually created)
+public class DemoRequest {
+    private String input;
+
+    public String getInput() {
+        return input;
+    }
+
+    public void setInput(String input) {
+        this.input = input;
+    }
+}
+
+// DemoResponse.java (Generated from XSD or manually created)
+public class DemoResponse {
+    private String output;
+
+    public String getOutput() {
+        return output;
+    }
+
+    public void setOutput(String output) {
+        this.output = output;
+    }
+}
+
+// demo.xsd (Place this in the resources directory)
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/demo"
+           xmlns:tns="http://example.com/demo"
+           elementFormDefault="qualified">
+
+    <xs:element name="Demo
