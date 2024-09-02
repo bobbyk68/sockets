@@ -1,0 +1,38 @@
+@Configuration
+public class RetryConfig {
+
+    @Bean
+    public RetryTemplate retryTemplate() {
+        RetryTemplate retryTemplate = new RetryTemplate();
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(3); 
+
+        TimeoutRetryPolicy timeoutRetryPolicy = new TimeoutRetryPolicy();
+        timeoutRetryPolicy.setTimeout(5000); 
+
+        CompositeRetryPolicy policy = new CompositeRetryPolicy();
+        policy.setPolicies(new RetryPolicy[] { retryPolicy, timeoutRetryPolicy });
+
+        retryTemplate.setRetryPolicy(policy);
+
+        return retryTemplate;
+    }
+}
+
+@Service
+public class MyService {
+
+    @Autowired
+    private RetryTemplate retryTemplate;
+
+    public MyResponse performSoapCall() {
+        return retryTemplate.execute(context -> {
+            // Your SOAP call logic here
+        }, context -> {
+            // Construct and return your SOAP Fault response here
+            SoapFault fault = ...; 
+            throw new SoapFaultClientException(fault); 
+        });
+    }
+}
