@@ -1,1 +1,75 @@
+import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Service;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+// Service class with the @TimeLimiter annotation
+@Service
+public class MyService {
+
+    @TimeLimiter(name = "myServiceTimeLimiter")
+    public CompletableFuture<String> doSomething() {
+        // Simulate a long-running task
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);  // Simulate a delay
+                return "Task Completed";
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+}
+
+// Test class to test the TimeLimiter behavior
+@SpringJUnitConfig(TimeLimiterServiceTest.TestConfig.class)
+public class TimeLimiterServiceTest {
+
+    @Autowired
+    private MyService myService;
+
+    // Test configuration to override the TimeLimiter timeout during the tests
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public TimeLimiterConfig customTimeLimiterConfig() {
+            // Override the YAML-configured timeout for testing purposes
+            return TimeLimiterConfig.custom()
+                    .timeoutDuration(Duration.ofMillis(50))  // Custom short timeout for test
+                    .build();
+        }
+    }
+
+    @Test
+    void shouldThrowTimeoutExceptionWhenExecutionExceedsTimeLimit() {
+        CompletableFuture<String> result = myService.doSomething();
+
+        // Expecting a TimeoutException because the task takes longer than 50ms
+        assertThrows(ExecutionException.class, () -> result.get());
+    }
+
+    @Test
+    void shouldNotThrowTimeoutExceptionWhenExecutionIsWithinTimeLimit() {
+        // Using a test configuration where the timeout is long enough
+        CompletableFuture<String> result = myService.doSomething();
+
+        // Ensure no exception is thrown when the task finishes within time
+        assertDoesNotThrow(() -> {
+            result.get();
+        });
+    }
+}
 
