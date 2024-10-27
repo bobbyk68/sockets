@@ -1,49 +1,44 @@
-import org.springframework.context.SmartLifecycle;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
-
-import java.time.ZoneId;
-import java.util.TimeZone;
+import java.io.IOException;
 
 @Component
-public class TimeZoneCheckLifecycle implements SmartLifecycle {
-
-    private boolean isRunning = false;
+public class PutRequestFilter implements Filter {
 
     @Override
-    public void start() {
-        // Check the time zone before the application fully starts
-        TimeZone timeZone = TimeZone.getDefault();
-        ZoneId expectedZone = ZoneId.of("UTC");
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-        if (!timeZone.toZoneId().equals(expectedZone)) {
-            System.err.println("The application is not running in UTC time zone. Shutting down...");
-            System.exit(1);
+        // Only wrap for PUT requests
+        if ("PUT".equalsIgnoreCase(httpRequest.getMethod())) {
+            CustomHttpServletRequestWrapper wrappedRequest = new CustomHttpServletRequestWrapper(httpRequest);
+            
+            // Here you can validate the payload or log it
+            String payload = wrappedRequest.getBody();
+            System.out.println("Payload in filter: " + payload);
+
+            // Pass the wrapped request to the filter chain
+            chain.doFilter(wrappedRequest, response);
+        } else {
+            // For other HTTP methods, proceed without wrapping
+            chain.doFilter(request, response);
         }
     }
 
     @Override
-    public void stop() {
-        isRunning = false;
+    public void init(FilterConfig filterConfig) throws ServletException {
+        // No specific initialization required
     }
 
     @Override
-    public boolean isRunning() {
-        return isRunning;
-    }
-
-    @Override
-    public int getPhase() {
-        return Integer.MIN_VALUE; // Ensures this runs at the very start
-    }
-
-    @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
+    public void destroy() {
+        // No specific destruction actions required
     }
 }
