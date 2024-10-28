@@ -1,0 +1,42 @@
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+
+public class JsonResponseValidationFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        CustomHttpServletResponseWrapper wrappedResponse = new CustomHttpServletResponseWrapper(response);
+
+        // Proceed with the filter chain and capture the response
+        filterChain.doFilter(request, wrappedResponse);
+
+        // Validate the JSON response payload
+        String jsonResponse = wrappedResponse.getResponseBody();
+        if (!isValidJsonResponse(jsonResponse)) {
+            sendErrorResponse(response, "Invalid response payload");
+            return; // Stop further processing if response validation fails
+        }
+
+        // Write the validated response back to the client
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
+    }
+
+    private boolean isValidJsonResponse(String jsonResponse) {
+        // Implement your JSON response validation logic here
+        return true;
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
+        response.getWriter().flush();
+    }
+}
