@@ -1,0 +1,61 @@
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.filter.OncePerRequestFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class JsonResponseValidationFilter extends OncePerRequestFilter {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        // Wrap response to capture the controller's output
+        CustomHttpServletResponseWrapper wrappedResponse = new CustomHttpServletResponseWrapper(response);
+
+        // Proceed with the filter chain to capture the response from the controller
+        filterChain.doFilter(request, wrappedResponse);
+
+        // Capture the original response body
+        String originalResponseBody = wrappedResponse.getCapturedResponseBody();
+
+        // Check if the JSON is malformed
+        if (!isJsonValid(originalResponseBody)) {
+            // Construct the JSON manually to ensure the entire structure is sent back
+            String errorResponse = String.format(
+                    "{\"status\":\"error\", \"message\":\"There was an error processing the response\", \"originalPayload\":\"%s\"}",
+                    escapeJson(originalResponseBody));
+
+            // Send the constructed JSON response back to the client
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.getWriter().write(errorResponse);
+            response.getWriter().flush();
+        } else {
+            // If JSON is valid, send it as it is or perform further validation if needed
+            response.getWriter().write(originalResponseBody);
+            response.getWriter().flush();
+        }
+    }
+
+    private boolean isJsonValid(String json) {
+        try {
+            objectMapper.readTree(json);
+            return true;
+        } catch (IOException e) {
+            // JSON is invalid if parsing fails
+            return false;
+        }
+    }
+
+    // Helper method to escape any quotes or special characters in JSON
+    private String escapeJson(String json) {
+        return json.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+}
