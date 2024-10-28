@@ -1,0 +1,46 @@
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+
+public class CustomHttpServletResponseWrapper extends HttpServletResponseWrapper {
+
+    private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    private final PrintWriter writer = new PrintWriter(buffer);
+
+    public CustomHttpServletResponseWrapper(HttpServletResponse response) {
+        super(response);
+    }
+
+    @Override
+    public ServletOutputStream getOutputStream() {
+        return new ServletOutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                buffer.write(b); // Write to the internal buffer
+            }
+
+            @Override
+            public boolean isReady() {
+                return true;
+            }
+
+            @Override
+            public void setWriteListener(WriteListener writeListener) {}
+        };
+    }
+
+    @Override
+    public PrintWriter getWriter() {
+        return writer;
+    }
+
+    public String getCapturedResponseBody() {
+        writer.flush(); // Ensure all data is written to the buffer
+        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+    }
+}
