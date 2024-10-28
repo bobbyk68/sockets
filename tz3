@@ -1,0 +1,21 @@
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class FilterConfig {
+
+    @Bean
+    public FilterRegistrationBean<PutRequestFilter> putRequestFilter() {
+        FilterRegistrationBean<PutRequestFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new PutRequestFilter());
+        
+        // Only apply to specific URL patterns (e.g., all URLs with /api/*) if needed
+        registrationBean.addUrlPatterns("/api/*");
+        
+        // Set filter to only activate on PUT requests
+        registrationBean.setDispatcherTypes(javax.servlet.DispatcherType.REQUEST);
+        
+        return registrationBean;
+    }
+}
