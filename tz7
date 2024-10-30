@@ -1,27 +1,43 @@
-private String validateJson(String payload, Function<String, Set<ValidationMessage>> validator, String operationType) {
-    String validationErrorMessages = "";
-    Set<ValidationMessage> validationErrors = validator.apply(payload);
-    
-    if (validationErrors.isEmpty()) {
-        log.info("Licence update {} payload Json schema validation success", operationType);
-    } else {
-        validationErrorMessages = validationErrors.toString();
-        log.error("Licence update {} payload Json schema validation failed with error message: {}", 
-                  operationType, validationErrors);
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(controllers = TestController.class)
+class GlobalExceptionHandlerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private TestController testController;
+
+    @Test
+    void testHandleInvalidJsonException() throws Exception {
+        // Simulate InvalidJsonException thrown by the controller
+        when(testController.getTestResponse()).thenThrow(new InvalidJsonException("{ \"badJson\": true }"));
+
+        mockMvc.perform(get("/test"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("Invalid JSON detected in response"))
+                .andExpect(jsonPath("$.originalPayload").value("{ \"badJson\": true }"));
     }
-    
-    return validationErrorMessages;
-}
 
-// Then your three methods become:
-public String validateJsonSchema(String payload) throws JsonProcessingException {
-    return validateJson(payload, jsonRequestSchema::validate, "schema");
-}
+    @Test
+    void testHandleGenericException() throws Exception {
+        // Simulate generic exception thrown by the controller
+        when(testController.getTestResponse()).thenThrow(new RuntimeException("Unexpected error"));
 
-public String validateJsonRequestPayload(String payload) throws JsonProcessingException {
-    return validateJson(payload, this::validateRequest, "request");
-}
-
-public String validateJsonResponsePayload(String payload) throws JsonProcessingException {
-    return validateJson(payload, this::validateResponse, "response");
+        mockMvc.perform(get("/test"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+    }
 }
