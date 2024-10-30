@@ -1,17 +1,27 @@
-@Aspect
-@Component
-public class JsonValidationAspect {
-
-    @Before("@annotation(org.springframework.web.bind.annotation.RequestBody) && args(requestBody)")
-    public void validateJson(Object requestBody) throws JsonInvalidException {
-        // Perform JSON validation on requestBody
-        if (!isValid(requestBody)) {
-            throw new JsonInvalidException("Invalid JSON format");
-        }
+private String validateJson(String payload, Function<String, Set<ValidationMessage>> validator, String operationType) {
+    String validationErrorMessages = "";
+    Set<ValidationMessage> validationErrors = validator.apply(payload);
+    
+    if (validationErrors.isEmpty()) {
+        log.info("Licence update {} payload Json schema validation success", operationType);
+    } else {
+        validationErrorMessages = validationErrors.toString();
+        log.error("Licence update {} payload Json schema validation failed with error message: {}", 
+                  operationType, validationErrors);
     }
+    
+    return validationErrorMessages;
+}
 
-    private boolean isValid(Object requestBody) {
-        // Implement your JSON validation logic
-        return true; // Placeholder
-    }
+// Then your three methods become:
+public String validateJsonSchema(String payload) throws JsonProcessingException {
+    return validateJson(payload, jsonRequestSchema::validate, "schema");
+}
+
+public String validateJsonRequestPayload(String payload) throws JsonProcessingException {
+    return validateJson(payload, this::validateRequest, "request");
+}
+
+public String validateJsonResponsePayload(String payload) throws JsonProcessingException {
+    return validateJson(payload, this::validateResponse, "response");
 }
