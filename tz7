@@ -1,43 +1,41 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = TestController.class)
-class GlobalExceptionHandlerTest {
+@WebMvcTest(LicenseController.class) // Specify the controller to test
+class LicenseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private TestController testController;
+    @Autowired
+    private ObjectMapper objectMapper; // For converting objects to JSON strings
 
     @Test
-    void testHandleInvalidJsonException() throws Exception {
-        // Simulate InvalidJsonException thrown by the controller
-        when(testController.getTestResponse()).thenThrow(new InvalidJsonException("{ \"badJson\": true }"));
+    void testProcessLicense() throws Exception {
+        // Prepare a sample License object
+        License license = new License();
+        license.setLicenseId("12345");
+        license.setOwnerName("John Doe");
+        license.setIssuedDate("2023-10-01");
 
-        mockMvc.perform(get("/test"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("error"))
-                .andExpect(jsonPath("$.message").value("Invalid JSON detected in response"))
-                .andExpect(jsonPath("$.originalPayload").value("{ \"badJson\": true }"));
-    }
+        // Convert the License object to JSON for the request body
+        String licenseJson = objectMapper.writeValueAsString(license);
 
-    @Test
-    void testHandleGenericException() throws Exception {
-        // Simulate generic exception thrown by the controller
-        when(testController.getTestResponse()).thenThrow(new RuntimeException("Unexpected error"));
-
-        mockMvc.perform(get("/test"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.status").value("error"))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+        // Perform the POST request and check the response
+        mockMvc.perform(post("/license")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(licenseJson))
+                .andExpect(status().isOk()) // Check for 200 OK
+                .andExpect(jsonPath("$.licenseId").value("12345")) // Check licenseId in response
+                .andExpect(jsonPath("$.ownerName").value("John Doe")) // Check ownerName in response
+                .andExpect(jsonPath("$.status").value("accepted")); // Check status is "accepted"
     }
 }
