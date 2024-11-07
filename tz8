@@ -1,0 +1,185 @@
+// Functional Interface for Validation Rules
+@FunctionalInterface
+public interface ValidationRule {
+    List<String> validate(License license);
+}
+
+// Date Validation Rules
+package your.package.name.rules.datechecks; // Adjust the package name
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class StartDateValidator implements ValidationRule {
+    @Override
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        if (!license.getStartDate().isBefore(LocalDate.now())) {
+            errors.add("Start date validation failed");
+        }
+        return errors;
+    }
+}
+
+public class ExpiryValidator implements ValidationRule {
+    @Override
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        if (!license.getExpiry().isAfter(LocalDate.now())) {
+            errors.add("Expiry date validation failed");
+        }
+        return errors;
+    }
+}
+
+// Activation Validation Rules
+package your.package.name.rules.activechecks; // Adjust the package name
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ActiveValidator implements ValidationRule {
+    @Override
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        if (!license.isActive()) {
+            errors.add("Active status validation failed");
+        }
+        return errors;
+    }
+}
+
+public class ExpiredValidator implements ValidationRule {
+    @Override
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        if (license.isExpired()) {
+            errors.add("Expired status validation failed");
+        }
+        return errors;
+    }
+}
+
+// Validation Registry to Manage Rules
+package your.package.name; // Adjust the package name
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ValidationRegistry {
+    private final List<ValidationRule> rules = new ArrayList<>();
+
+    public void registerRule(ValidationRule rule) {
+        rules.add(rule);
+    }
+
+    public List<ValidationRule> getRules() {
+        return rules;
+    }
+
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        for (ValidationRule rule : rules) {
+            errors.addAll(rule.validate(license));
+        }
+        return errors;
+    }
+}
+
+// License Validation Service Using the Registry
+package your.package.name; // Adjust the package name
+
+import your.package.name.rules.datechecks.StartDateValidator;
+import your.package.name.rules.datechecks.ExpiryValidator;
+import your.package.name.rules.activechecks.ActiveValidator;
+import your.package.name.rules.activechecks.ExpiredValidator;
+
+public class LicenseValidationService {
+    private final ValidationRegistry registry;
+
+    public LicenseValidationService() {
+        registry = new ValidationRegistry();
+        registerValidationRules();
+    }
+
+    private void registerValidationRules() {
+        // Register rules from different packages
+        registry.registerRule(new StartDateValidator());
+        registry.registerRule(new ExpiryValidator());
+        registry.registerRule(new ActiveValidator());
+        registry.registerRule(new ExpiredValidator());
+        // Add more rules here as needed
+    }
+
+    public List<String> validate(License license) {
+        return registry.validate(license);
+    }
+}
+
+// Main Class
+package your.package.name; // Adjust the package name
+
+public class Main {
+    public static void main(String[] args) {
+        License license = new License();
+        // Initialize the license fields accordingly
+
+        LicenseValidationService service = new LicenseValidationService();
+        List<String> errors = service.validate(license);
+
+        if (!errors.isEmpty()) {
+            errors.forEach(System.out::println);
+        } else {
+            System.out.println("License is valid");
+    }
+}
+
+// License Class
+package your.package.name; // Adjust the package name
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class License {
+    private LocalDate startDate;
+    private LocalDate expiry;
+    private boolean active;
+    private boolean expired;
+
+    // Getters and setters for the fields
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getExpiry() {
+        return expiry;
+    }
+
+    public void setExpiry(LocalDate expiry) {
+        this.expiry = expiry;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isExpired() {
+        return expired;
+    }
+
+    public void setExpired(boolean expired) {
+        this.expired = expired;
+    }
+}
+
