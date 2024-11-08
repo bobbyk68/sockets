@@ -1,0 +1,117 @@
+[200~// 1. Define the Custom `@Rule` Annotation
+import org.springframework.stereotype.Component;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.TYPE) // Applies to classes only
+@Retention(RetentionPolicy.RUNTIME) // Available at runtime for reflection
+@Component // Acts as a Spring component
+public @interface Rule {
+    boolean active() default true; // Optional flag for activation if needed in the future
+}
+
+// 2. Configure Spring to Scan for `@Rule` Annotations
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+
+@Configuration
+@ComponentScan(
+    includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Rule.class)
+)
+public class AppConfig {
+    // Additional configuration if needed
+}
+
+// 3. Define the `ValidationRule` Interface
+public interface ValidationRule {
+    String getErrorCode();
+    boolean validate(License license);
+}
+
+// 4. Implement Validation Rules with `@Rule` Annotation
+@Rule
+public class StartDateValidationRule implements ValidationRule {
+    @Override
+    public String getErrorCode() {
+        return "ERR_START_DATE_INVALID";
+    }
+
+    @Override
+    public boolean validate(License license) {
+        return license.getStartDate() != null && license.getStartDate().isBefore(java.time.LocalDate.now().minusDays(30));
+    }
+}
+
+@Rule
+public class ExpiryDateValidationRule implements ValidationRule {
+    @Override
+    public String getErrorCode() {
+        return "ERR_LICENSE_EXPIRED";
+    }
+
+    @Override
+    public boolean validate(License license) {
+        return license.getExpiry() != null && license.getExpiry().isAfter(java.time.LocalDate.now());
+    }
+}
+
+@Rule
+public class ActiveStatusValidationRule implements ValidationRule {
+    @Override
+    public String getErrorCode() {
+        return "ERR_LICENSE_NOT_ACTIVE";
+    }
+
+    @Override
+    public boolean validate(License license) {
+        return license.isActive() && !license.isExpired();
+    }
+}
+
+// 5. Implement `LicenseValidator` to Inject and Use All `@Rule` Beans
+import org.springframework.stereotype.Component;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class LicenseValidator {
+
+    private final List<ValidationRule> validationRules;
+
+    // Inject all ValidationRule beans
+    public LicenseValidator(List<ValidationRule> validationRules) {
+        this.validationRules = validationRules;
+    }
+
+    public List<String> validate(License license) {
+        List<String> errors = new ArrayList<>();
+        for (ValidationRule rule : validationRules) {
+            if (!rule.validate(license)) {
+                errors.add(rule.getErrorCode());
+            }
+        }
+        return errors;
+    }
+}
+
+// Assuming License class is defined with relevant fields
+public class License {
+    private java.time.LocalDate startDate;
+    private java.time.LocalDate expiry;
+    private boolean active;
+    private boolean expired;
+
+    // Getters and Setters
+    public java.time.LocalDate getStartDate() { return startDate; }
+    public void setStartDate(java.time.LocalDate startDate) { this.startDate = startDate; }
+    public java.time.LocalDate getExpiry() { return expiry; }
+    public void setExpiry(java.time.LocalDate expiry) { this.expiry = expiry; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public boolean isExpired() { return expired; }
+    public void setExpired(boolean expired) { this.expired = expired; }
+}
+
