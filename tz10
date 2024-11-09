@@ -1,0 +1,45 @@
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+// The ReferenceData class acts as a container for the data needed by validation rules.
+// The ReferenceDataService fetches data from various repositories and constructs the ReferenceData object.
+@Service
+public class ReferenceDataService {
+    
+    private final CountryRepository countryRepository;
+    private final SpecificTypeRepository specificTypeRepository;
+
+    public ReferenceDataService(CountryRepository countryRepository, SpecificTypeRepository specificTypeRepository) {
+        this.countryRepository = countryRepository;
+        this.specificTypeRepository = specificTypeRepository;
+    }
+
+    // Load all reference data needed for validation in a single method.
+    public ReferenceData loadReferenceData() {
+        List<String> allowedCountries = countryRepository.findAllowedCountries();
+        List<SpecificType> specificTypeData = specificTypeRepository.findSpecificTypes();
+        
+        return new ReferenceData(allowedCountries, specificTypeData);
+    }
+
+    // Inner static class ReferenceData holds specific reference data for validation.
+    public static class ReferenceData {
+        private final List<String> allowedCountries;
+        private final List<SpecificType> specificTypeData;
+
+        public ReferenceData(List<String> allowedCountries, List<SpecificType> specificTypeData) {
+            this.allowedCountries = allowedCountries;
+            this.specificTypeData = specificTypeData;
+        }
+
+        public List<String> getAllowedCountries() {
+            return allowedCountries;
+        }
+
+        public List<SpecificType> getSpecificTypeData() {
+            return specificTypeData;
+        }
+
+        // Additional getters can be added here for other types of reference data.
+    }
+}
