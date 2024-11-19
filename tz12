@@ -1,0 +1,52 @@
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
+@DataJpaTest
+class LicenseRepositoryTest {
+
+    @Autowired
+    private LicenseRepository licenseRepository;
+
+    private final UTCOffsetDateTimeConverter converter = new UTCOffsetDateTimeConverter();
+
+    @Test
+    void testPersistAndRetrieveOffsetDateTime() {
+        // Arrange: Create a License entity with current UTC time
+        License license = new License();
+        OffsetDateTime nowUtc = OffsetDateTime.now(ZoneOffset.UTC);
+        license.setLastChanged(nowUtc);
+
+        // Act: Save and retrieve the entity
+        licenseRepository.save(license);
+        License retrievedLicense = licenseRepository.findById(license.getId()).orElseThrow();
+
+        // Assert: Verify that the persisted and retrieved values match in UTC
+        assertThat(retrievedLicense.getLastChanged())
+            .isEqualTo(nowUtc) // Ensure retrieved timestamp matches saved timestamp
+            .isEqualTo(nowUtc.withOffsetSameInstant(ZoneOffset.UTC)); // Ensure it's in UTC
+    }
+
+    @Test
+    void testConverterLogic() {
+        // Arrange: Create an OffsetDateTime in UTC
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        // Act: Convert to database column (Timestamp) and back to entity attribute
+        Timestamp timestamp = converter.convertToDatabaseColumn(now);
+        OffsetDateTime convertedBack = converter.convertToEntityAttribute(timestamp);
+
+        // Assert: Verify both conversions are accurate
+        assertThat(timestamp).isNotNull();
+        assertThat(timestamp.toInstant()).isEqualTo(now.toInstant()); // Ensure stored instant matches
+        assertThat(convertedBack).isNotNull();
+        assertThat(convertedBack.toInstant()).isEqualTo(now.toInstant()); // Ensure retrieved instant matches
+        assertThat(convertedBack.getOffset()).isEqualTo(ZoneOffset.UTC); // Ensure UTC offset
+    }
+}
