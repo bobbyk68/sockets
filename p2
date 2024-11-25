@@ -1,0 +1,44 @@
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import org.hibernate.jpa.HibernatePersistenceProvider;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class JpaTestExample {
+    public static void main(String[] args) {
+        // Create a Map to hold configuration properties
+        Map<String, Object> config = new HashMap<>();
+        config.put("jakarta.persistence.jdbc.url", "jdbc:oracle:thin:@localhost:1521:xe");
+        config.put("jakarta.persistence.jdbc.user", "username");
+        config.put("jakarta.persistence.jdbc.password", "password");
+        config.put("jakarta.persistence.jdbc.driver", "oracle.jdbc.OracleDriver");
+
+        // Configure the JPA provider (Hibernate)
+        config.put("hibernate.dialect", "org.hibernate.dialect.Oracle12cDialect");
+        config.put("hibernate.hbm2ddl.auto", "update");
+        config.put("hibernate.show_sql", "true");  // Optional for logging SQL queries
+
+        // Create EntityManagerFactory programmatically
+        EntityManagerFactory emf = new HibernatePersistenceProvider().createEntityManagerFactory("my-persistence-unit", config);
+
+        // Create EntityManager from EntityManagerFactory
+        EntityManager em = emf.createEntityManager();
+
+        // Begin transaction
+        em.getTransaction().begin();
+
+        // Perform operations (e.g., save an entity)
+        MyEntity entity = new MyEntity();
+        entity.setName("Test Name");
+        em.persist(entity);
+
+        // Commit transaction
+        em.getTransaction().commit();
+
+        // Close EntityManager and EntityManagerFactory
+        em.close();
+        emf.close();
+    }
+}
