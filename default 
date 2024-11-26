@@ -1,0 +1,37 @@
+@ExtendWith(MockitoExtension.class)
+public class LicenceServiceTest {
+
+    @InjectMocks
+    private LicenceService licenceService;
+
+    @Test
+    public void testPrepareDefaultValues_ShouldSetDefaultValues() {
+        // Arrange: Create a Licence object with null fields
+        Licence licence = new Licence();
+        licence.setStartingFrom(null);
+        licence.setEnding(LocalDate.of(2025, 12, 31)); // Ending date is already set
+
+        PermittedTrader trader1 = new PermittedTrader();
+        trader1.setStartingFrom(null); // This should get defaulted from the licence
+        trader1.setEnding(null); // This should get defaulted from the licence
+
+        PermittedTrader trader2 = new PermittedTrader();
+        trader2.setStartingFrom(LocalDate.of(2023, 1, 1)); // This should NOT change
+        trader2.setEnding(null); // This should get defaulted from the licence
+
+        licence.setPermittedTraders(Arrays.asList(trader1, trader2));
+
+        // Act: Call the service method
+        licenceService.prepareDefaultValues(licence);
+
+        // Assert: Verify the licence and traders have correct default values
+        assertNotNull(licence.getStartingFrom(), "Licence startingFrom should not be null");
+        assertEquals(LICENCE_DEFAULT_STARTING, licence.getStartingFrom());
+
+        assertEquals(licence.getStartingFrom(), trader1.getStartingFrom(), "Trader1 startingFrom should match licence's startingFrom");
+        assertEquals(licence.getEnding(), trader1.getEnding(), "Trader1 ending should match licence's ending");
+
+        assertEquals(LocalDate.of(2023, 1, 1), trader2.getStartingFrom(), "Trader2 startingFrom should not change");
+        assertEquals(licence.getEnding(), trader2.getEnding(), "Trader2 ending should match licence's ending");
+    }
+}
