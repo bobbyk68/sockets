@@ -1,0 +1,24 @@
+public void prepareDefaultValues(Licence licence) {
+    // Ensure default value for licence startingFrom
+    if (licence.getStartingFrom() == null) {
+        licence.setStartingFrom(LICENCE_DEFAULT_STARTING);
+    }
+
+    // Safely handle permittedTraders list
+    if (licence.getPermittedTraders() != null) {
+        for (PermittedTrader trader : licence.getPermittedTraders()) {
+            // Set default startingFrom if null
+            setDefaultIfNull(() -> trader.getStartingFrom(), value -> trader.setStartingFrom(licence.getStartingFrom()));
+
+            // Set default ending if null
+            setDefaultIfNull(() -> trader.getEnding(), value -> trader.setEnding(licence.getEnding()));
+        }
+    }
+}
+
+// Utility method for null checks
+private <T> void setDefaultIfNull(Supplier<T> getter, Consumer<T> setter) {
+    if (getter.get() == null) {
+        setter.accept(null);
+    }
+}
