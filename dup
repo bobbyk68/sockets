@@ -1,0 +1,62 @@
+@Override
+public List<LicenceUpdateError> validate(Licence licence, ReferenceService.ReferenceData referenceData) {
+    List<LicenceUpdateError> errors = new ArrayList<>();
+    List<Country> countries = licence.getCountries();
+
+    if (!CollectionUtils.isEmpty(countries)) {
+        processDuplicateEntries(
+            duplicateCountryCodeAndCountryUseIndexList(countries),
+            errors,
+            countries,
+            licence.getLicenceReference(),
+            "code",
+            Country::getCode // Pass the getter for code
+        );
+
+        processDuplicateEntries(
+            duplicateCountryGroupAndCountryUseIndexList(countries),
+            errors,
+            countries,
+            licence.getLicenceReference(),
+            "group",
+            Country::getGroup // Pass the getter for group
+        );
+    }
+
+    return errors;
+}
+
+private void processDuplicateEntries(
+    List<Integer> duplicateIndexes,
+    List<LicenceUpdateError> errors,
+    List<Country> countries,
+    String licenceReference,
+    String typeName, // "code" or "group"
+    Function<Country, String> valueExtractor // Getter function for code or group
+) {
+    if (!duplicateIndexes.isEmpty()) {
+        for (Integer index : duplicateIndexes) {
+            errors.add(
+                LicenceUpdateError.builder()
+                    .code(DUPLICATE_COUNTRY_ERROR_CODE)
+                    .message(DUPLICATE_COUNTRY_ERROR_MESSAGE)
+                    .path(String.format(typeName.equals("code") 
+                                        ? DUPLICATE_COUNTRY_CODE_ERROR_PATH : 
+                                         DUPLICATE_COUNTRY_PATH.) )
+                    .build()
+            );
+
+            String duplicateValue = valueExtractor.apply(countries.get(index - 1)); // Use the function
+
+            log.error(
+                String.format(
+                    "Rejecting licence %s because more than one identical country %s %s exists.",
+                    licenceReference,
+                    typeName,
+                    duplicateValue
+                )
+            );
+        }
+    }
+}
+
